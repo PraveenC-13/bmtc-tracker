@@ -15,13 +15,7 @@ func envOr(key, fallback string) string {
 
 func main() {
 	// connect to postgres
-	db, err := NewDB(
-		envOr("DB_HOST", "localhost"),
-		envOr("DB_PORT", "5432"),
-		envOr("DB_USER", "bmtc"),
-		envOr("DB_PASSWORD", "bmtc"),
-		envOr("DB_NAME", "bmtc"),
-	)
+	db, err := NewDB(envOr("DATABASE_URL", ""))
 	if err != nil {
 		log.Fatal("postgres connection failed: ", err)
 	}

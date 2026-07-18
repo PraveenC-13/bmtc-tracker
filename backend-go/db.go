@@ -12,18 +12,20 @@ type DB struct {
 	conn *sql.DB
 }
 
-func NewDB(host, port, user, password, dbname string) (*DB, error) {
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname,
-	)
-	conn, err := sql.Open("postgres", dsn)
+func NewDB(databaseURL string) (*DB, error) {
+	if databaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL is empty")
+	}
+
+	conn, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		return nil, err
 	}
+
 	if err := conn.Ping(); err != nil {
 		return nil, err
 	}
+
 	log.Println("connected to postgres")
 	return &DB{conn: conn}, nil
 }
