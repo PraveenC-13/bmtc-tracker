@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BMTC 500D — Live Tracker</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+    :root {
+      --purple: #7b2fff;
+      --purple-glow: rgba(123,47,255,0.25);
+      --teal: #00e5cc;
+      --teal-glow: rgba(0,229,204,0.2);
+      --orange: #ff6b35;
+      --green: #00d68f;
+      --bg: #050810;
+      --surface: #0b0e1a;
+      --surface2: #101424;
+      --border: #1a2040;
+      --border2: #1f2850;
+      --text: #d0d8f0;
+      --muted: #4a5580;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    body::before {
+      content:'';
+      position:fixed; top:-50%; left:-50%; width:200%; height:200%;
+      background: radial-gradient(ellipse at 20% 20%, rgba(123,47,255,0.06) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, rgba(0,229,204,0.04) 0%, transparent 50%);
+      pointer-events:none; z-index:0;
+    }
+
+    .wrap { position:relative; z-index:1; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(180deg,#0d1020 0%,rgba(11,14,26,0.97) 100%);
+      border-bottom:1px solid var(--border);
+      padding:0 16px;
+      position:sticky; top:0; z-index:100;
+    }
+
+    .header-top {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0 10px;
+    }
+
+    .logo { display:flex; align-items:center; gap:10px; }
+
+    .logo-icon {
+      width:36px; height:36px;
+      background:linear-gradient(150deg,var(--purple),#a855f7);
+      border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:18px;
+      box-shadow:0 0 30px var(--purple-glow);
+    }
+
+    .logo-text h1 {
+      font-family:'Rajdhani',sans-serif;
+      font-size:18px; font-weight:700; color:#fff; letter-spacing:1px;
+    }
+
+    .logo-text p { font-size:10px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+
+    .rbadge {
+      background:linear-gradient(180deg,var(--purple),#a855f7);
+      color:#fff;
+      font-family:'Rajdhani',sans-serif;
+      font-size:15px; font-weight:700;
+      padding:5px 12px; border-radius:8px; letter-spacing:1px;
+      box-shadow:0 0 30px var(--purple-glow);
+    }
+
+    .stats {
+      display:flex; gap:20px;
+      padding:10px 0 14px;
+      border-top:1px solid var(--border);
+    }
+
+    .stat { display:flex; flex-direction:column; }
+    .stat-lbl { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+    .stat-val { font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:600; color:#fff; }
+
+    .live-pill {
+      display:inline-flex; align-items:center; gap:5px;
+      background:rgba(0,214,143,.1);
+      border:1px solid rgba(0,214,143,.3);
+      color:var(--green);
+      font-size:10px; font-weight:600;
+      padding:3px 8px; border-radius:20px;
+      text-transform:uppercase; letter-spacing:.5px;
+    }
+
+    .live-dot {
+      width:5px; height:5px; border-radius:50%;
+      background:var(--green);
+      animation:lpulse 1.5s infinite;
+    }
+
+    @keyframes lpulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.7)} }
+
+    /* Tabs */
+    .tabs {
+      display:flex; padding:12px 16px; gap:8px;
+      background:var(--surface);
+      border-bottom:1px solid var(--border);
+    }
+
+    .tab {
+      flex:1; padding:10px 8px;
+      border-radius:10px;
+      border:1px solid var(--border2);
+      background:var(--surface2);
+      color:var(--muted);
+      font-size:12px; font-weight:500;
+      text-align:center; cursor:pointer;
+      transition:all .25s;
+    }
+
+    .tab .arr { font-size:14px; display:block; margin-bottom:2px; }
+
+    .tab.active {
+      background:linear-gradient(135deg,rgba(123,47,255,.2),rgba(168,85,247,.1));
+      border-color:var(--purple);
+      color:#c4b5fd;
+      box-shadow:0 0 20px rgba(123,47,255,.15);
+    }
+
+    /* Selector */
+    .selector {
+      padding:14px 16px;
+      background:var(--surface);
+      border-bottom:1px solid var(--border);
+    }
+
+    .sel-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+      margin-bottom:12px;
+    }
+
+    .sel-box {
+      background:var(--surface2);
+      border:1px solid var(--border2);
+      border-radius:10px;
+      padding:10px 12px;
+      transition:border-color .2s;
+    }
+
+    .sel-box:focus-within { border-color:var(--purple); box-shadow:0 0 0 2px var(--purple-glow); }
+
+    .sel-box label {
+      font-size:9px; text-transform:uppercase;
+      letter-spacing:.6px; color:var(--muted);
+      display:block; margin-bottom:5px;
+    }
+
+    .cdot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:4px; }
+    .co { background:var(--orange); }
+    .ct { background:var(--teal); }
+
+    select {
+      width:100%; background:transparent; border:none;
+      color:#fff; font-size:12px; font-family:'Inter',sans-serif;
+      appearance:none; cursor:pointer; outline:none;
+    }
+
+    select option { background:#101424; color:#d0d8f0; }
+
+    .eta-btn {
+      width:100%; padding:13px;
+      background:linear-gradient(135deg,var(--purple),#a855f7);
+      color:#fff; border:none; border-radius:10px;
+      font-family:'Rajdhani',sans-serif;
+      font-size:16px; font-weight:700;
+      letter-spacing:1px; text-transform:uppercase;
+      cursor:pointer; transition:all .25s;
+      box-shadow:0 4px 20px var(--purple-glow);
+    }
+
+    .eta-btn:hover { transform:translateY(-1px); box-shadow:0 6px 30px rgba(123,47,255,.5); }
+    .eta-btn:active { transform:translateY(0); }
+
+    /* ETA card */
+    .eta-card {
+      margin:14px 16px;
+      background:var(--surface);
+      border:1px solid var(--border2);
+      border-radius:14px; overflow:hidden;
+      display:none;
+      box-shadow:0 0 40px rgba(123,47,255,.08);
+    }
+
+    .eta-card.show { display:block; animation:fup .3s ease; }
+
+    @keyframes fup { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    .eta-head {
+      background:linear-gradient(135deg,rgba(123,47,255,.15),rgba(168,85,247,.05));
+      border-bottom:1px solid var(--border2);
+      padding:14px 16px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+
+    .eta-head-lbl { font-size:10px; color:#a78bfa; text-transform:uppercase; letter-spacing:.6px; margin-bottom:4px; }
+    .eta-head-stop { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; color:#c4b5fd; }
+
+    .eta-row {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:13px 16px;
+      border-bottom:1px solid var(--border);
+    }
+
+    .eta-row:last-child { border-bottom:none; }
+
+    .eta-row-lbl { font-size:12px; color:var(--muted); margin-bottom:3px; }
+    .eta-row-stop { font-size:13px; font-weight:500; color:var(--text); }
+
+    .eta-val {
+      font-family:'Rajdhani',sans-serif;
+      font-size:32px; font-weight:700; line-height:1;
+    }
+
+    .ev-green { color:var(--green); }
+    .ev-orange { color:var(--orange); }
+    .eta-unit { font-size:12px; color:var(--muted); font-family:'Inter',sans-serif; }
+
+    /* No data */
+    .nodata {
+      margin:14px 16px; padding:24px;
+      background:var(--surface);
+      border:1px dashed var(--border2);
+      border-radius:14px;
+      text-align:center; display:none;
+    }
+
+    .nodata.show { display:block; }
+    .nodata .ni { font-size:32px; margin-bottom:10px; }
+    .nodata p { font-size:13px; color:var(--muted); line-height:1.6; }
+
+    /* Route list */
+    .rtitle {
+      padding:14px 16px 6px;
+      font-size:10px; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.6px;
+    }
+
+    .rlist { padding:0 16px 100px; }
+
+    .rrow { display:flex; align-items:stretch; min-height:48px; }
+
+    .rlcol {
+      width:24px; display:flex; flex-direction:column;
+      align-items:center; flex-shrink:0; margin-top:4px;
+    }
+
+    .rdot {
+      width:10px; height:10px; border-radius:50%;
+      border:2px solid var(--border2);
+      background:var(--bg);
+      flex-shrink:0; z-index:1;
+    }
+
+    .rdot.past { border-color:var(--green); background:var(--green); }
+    .rdot.cur { width:14px; height:14px; border-color:var(--purple); background:var(--purple); box-shadow:0 0 12px var(--purple-glow); }
+    .rdot.board { border-color:var(--orange); background:var(--orange); box-shadow:0 0 10px rgba(255,107,53,.4); }
+    .rdot.dest { border-color:var(--teal); background:var(--teal); box-shadow:0 0 10px var(--teal-glow); }
+
+    .rline { width:2px; flex:1; background:var(--border2); min-height:32px; }
+    .rline.past { background:var(--green); }
+    .rline.pur { background:linear-gradient(180deg,var(--purple),var(--border2)); }
+
+    .rcont {
+      flex:1; padding:6px 0 6px 12px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+
+    .rname { font-size:13px; color:var(--muted); }
+    .rname.cur { color:#fff; font-weight:600; }
+    .rname.board { color:var(--orange); font-weight:500; }
+    .rname.dest { color:var(--teal); font-weight:500; }
+
+    .rtag {
+      font-size:9px; font-weight:700;
+      padding:2px 7px; border-radius:10px;
+      text-transform:uppercase; letter-spacing:.4px;
+    }
+
+    .rtag.bus { background:rgba(123,47,255,.2); color:#a78bfa; border:1px solid rgba(123,47,255,.4); }
+    .rtag.you { background:rgba(255,107,53,.15); color:var(--orange); border:1px solid rgba(255,107,53,.3); }
+    .rtag.dst { background:rgba(0,229,204,.1); color:var(--teal); border:1px solid rgba(0,229,204,.25); }
+    .rtag.nxt { background:rgba(0,214,143,.1); color:var(--green); border:1px solid rgba(0,214,143,.25); }
+
+    /* GPS bar */
+    .gps-bar {
+      position:fixed; bottom:0; left:0; right:0;
+      background:rgba(11,14,26,.96);
+      backdrop-filter:blur(20px);
+      border-top:1px solid var(--border);
+      padding:12px 16px; z-index:100;
+    }
+
+    .gps-btn {
+      width:100%; padding:13px;
+      border-radius:10px;
+      border:1px solid var(--border2);
+      background:var(--surface2);
+      color:#a78bfa;
+      font-family:'Rajdhani',sans-serif;
+      font-size:15px; font-weight:600;
+      letter-spacing:.8px; text-transform:uppercase;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      transition:all .25s;
+    }
+
+    .gps-btn.on {
+      background:linear-gradient(135deg,rgba(123,47,255,.25),rgba(168,85,247,.1));
+      border-color:var(--purple); color:#c4b5fd;
+      box-shadow:0 0 20px var(--purple-glow);
+    }
+
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-track { background:var(--bg); }
+    ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-icon">🐾</div>
+      <div class="logo-text">
+        <h1>BMTC TRACKER</h1>
+        <p>Crowd-sourced live tracking</p>
+      </div>
+    </div>
+    <span class="rbadge">500D</span>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-lbl">Distance</span>
+      <span class="stat-val">22.7 km</span>
+    </div>
+    <div class="stat">
+      <span class="stat-lbl">Stops</span>
+      <span class="stat-val" id="total-stops">36</span>
+    </div>
+    <div class="stat" id="live-area" style="display:none">
+      <span class="stat-lbl">Status</span>
+      <span class="stat-val">
+        <span class="live-pill"><span class="live-dot"></span>Live</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" id="t1" onclick="switchDir(1)">
+    <span class="arr">↗</span>Hebbal → Silk Board
+  </div>
+  <div class="tab" id="t2" onclick="switchDir(2)">
+    <span class="arr">↙</span>Silk Board → Hebbal
+  </div>
+</div>
+
+<!-- Selector -->
+<div class="selector">
+  <div class="sel-grid">
+    <div class="sel-box">
+      <label><span class="cdot co"></span>Boarding Stop</label>
+      <select id="sel-b" onchange="chgB()"><option value="">Where are you?</option></select>
+    </div>
+    <div class="sel-box">
+      <label><span class="cdot ct"></span>Destination</label>
+      <select id="sel-d" onchange="chgD()"><option value="">Where to?</option></select>
+    </div>
+  </div>
+  <button class="eta-btn" onclick="getETA()">⚡ Get Live ETA</button>
+</div>
+
+<!-- ETA card -->
+<div class="eta-card" id="eta-card">
+  <div class="eta-head">
+    <div>
+      <div class="eta-head-lbl">🚌 Bus currently at</div>
+      <div class="eta-head-stop" id="bus-at">—</div>
+    </div>
+    <div class="live-pill"><span class="live-dot"></span>Live</div>
+  </div>
+  <div class="eta-row">
+    <div>
+      <div class="eta-row-lbl">Bus reaches your stop in</div>
+      <div class="eta-row-stop" id="lbl-b">—</div>
+    </div>
+    <div>
+      <div class="eta-val ev-green" id="eta-b">—</div>
+      <div class="eta-unit">minutes</div>
+    </div>
+  </div>
+  <div class="eta-row">
+    <div>
+      <div class="eta-row-lbl">You arrive at destination in</div>
+      <div class="eta-row-stop" id="lbl-d">—</div>
+    </div>
+    <div>
+      <div class="eta-val ev-orange" id="eta-d">—</div>
+      <div class="eta-unit">minutes</div>
+    </div>
+  </div>
+</div>
+
+<!-- No data -->
+<div class="nodata" id="nodata">
+  <div class="ni">🔍</div>
+  <p>No active buses detected right now.<br>Share your location to help other riders!</p>
+</div>
+
+<!-- Route list -->
+<div class="rtitle">Route Stops</div>
+<div class="rlist" id="rlist"></div>
+
+</div>
+
+<!-- GPS bar -->
+<div class="gps-bar">
+  <button class="gps-btn" id="gps-btn" onclick="toggleGPS()">
+    <span id="gps-ico">📍</span>
+    <span id="gps-lbl">Share My Location — Help Other Riders</span>
+  </button>
+</div>
+
+<script>
+  const API = "http://localhost:8080";
+  let dir=1, stops=[], bO=0, dO=0, busO=0;
+  let sharing=false, watchId=null, pollTimer=null;
+
+  function switchDir(d) {
+    dir=d;
+    document.getElementById("t1").className="tab"+(d===1?" active":"");
+    document.getElementById("t2").className="tab"+(d===2?" active":"");
+    bO=0; dO=0; busO=0;
+    hideETA(); loadStops();
+  }
+
+  async function loadStops() {
+    try {
+      const r = await fetch(`${API}/stops?direction_id=${dir}`);
+      stops = await r.json();
+      document.getElementById("total-stops").textContent = stops.length;
+      fillSel(); renderRoute();
+    } catch(e) {
+      document.getElementById("rlist").innerHTML =
+        `<div style="padding:20px;text-align:center;color:#c53030;font-size:13px">
+          ⚠️ Cannot reach backend — is Go running on localhost:8080?
+        </div>`;
+    }
+  }
+
+  function fillSel() {
+    const b=document.getElementById("sel-b");
+    const d=document.getElementById("sel-d");
+    b.innerHTML='<option value="">Where are you?</option>';
+    d.innerHTML='<option value="">Where to?</option>';
+    stops.forEach(s=>{
+      const o=`<option value="${s.StopOrder}">${s.StopOrder}. ${s.StopName}</option>`;
+      b.innerHTML+=o; d.innerHTML+=o;
+    });
+  }
+
+  function chgB(){ bO=parseInt(document.getElementById("sel-b").value)||0; renderRoute(); }
+  function chgD(){ dO=parseInt(document.getElementById("sel-d").value)||0; renderRoute(); }
+
+  async function getETA() {
+    if(!bO||!dO){ alert("Please select both boarding and destination stops."); return; }
+    if(bO>=dO){ alert("Destination must be ahead of your boarding stop."); return; }
+    await pollETA();
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollETA, 15000);
+  }
+
+  async function pollETA() {
+    try {
+      const r=await fetch(`${API}/eta?direction_id=${dir}`);
+      if(!r.ok){ showNoData(); return; }
+      const data=await r.json();
+      renderETA(data);
+    } catch(e){ showNoData(); }
+  }
+
+  function renderETA(data) {
+    const cur=stops.find(s=>s.StopName===data.current_stop);
+    busO=cur?cur.StopOrder:0;
+    const sps=data.next_stop_eta_sec||180;
+    const toB=Math.max(bO-busO,0)*sps;
+    const toD=Math.max(dO-busO,0)*sps;
+
+    document.getElementById("bus-at").textContent=data.current_stop;
+    document.getElementById("lbl-b").textContent=stops.find(s=>s.StopOrder===bO)?.StopName||"";
+    document.getElementById("lbl-d").textContent=stops.find(s=>s.StopOrder===dO)?.StopName||"";
+    document.getElementById("eta-b").textContent=toB<=0?"NOW":Math.ceil(toB/60);
+    document.getElementById("eta-d").textContent=toD<=0?"NOW":Math.ceil(toD/60);
+
+    document.getElementById("eta-card").className="eta-card show";
+    document.getElementById("nodata").className="nodata";
+    document.getElementById("live-area").style.display="block";
+    renderRoute();
+  }
+
+  function hideETA(){
+    document.getElementById("eta-card").className="eta-card";
+    document.getElementById("nodata").className="nodata";
+    document.getElementById("live-area").style.display="none";
+  }
+
+  function showNoData(){
+    document.getElementById("eta-card").className="eta-card";
+    document.getElementById("nodata").className="nodata show";
+  }
+
+  function renderRoute() {
+    if(!stops.length) return;
+    let html="";
+    stops.forEach((s,i)=>{
+      const o=s.StopOrder;
+      const last=i===stops.length-1;
+      let dc="rdot", nc="rname", lc="rline", tag="";
+
+      if(busO>0&&o<busO){ dc+=" past"; lc+=" past"; }
+      else if(o===busO){ dc+=" cur"; nc+=" cur"; tag='<span class="rtag bus">🚌 Here</span>'; lc+=" pur"; }
+
+      if(o===bO&&o!==busO){ dc="rdot board"; nc="rname board"; tag='<span class="rtag you">You</span>'; }
+      if(o===bO&&o===busO){ tag='<span class="rtag bus">🚌 + You</span>'; }
+      if(o===dO&&o!==bO){ dc="rdot dest"; nc="rname dest"; tag='<span class="rtag dst">Dest</span>'; }
+      if(o===busO+1&&busO>0&&o!==bO&&o!==dO){ tag='<span class="rtag nxt">Next</span>'; }
+
+      html+=`<div class="rrow">
+        <div class="rlcol">
+          <div class="${dc}"></div>
+          ${!last?`<div class="${lc}"></div>`:""}
+        </div>
+        <div class="rcont">
+          <div class="${nc}">${s.StopName}</div>
+          ${tag}
+        </div>
+      </div>`;
+    });
+    document.getElementById("rlist").innerHTML=html;
+  }
+
+  function toggleGPS(){ sharing?stopGPS():startGPS(); }
+
+  function startGPS(){
+    if(!navigator.geolocation){ alert("GPS not supported."); return; }
+    navigator.geolocation.getCurrentPosition(()=>{
+      sharing=true;
+      document.getElementById("gps-btn").className="gps-btn on";
+      document.getElementById("gps-ico").textContent="🔴";
+      document.getElementById("gps-lbl").textContent="Sharing Location — Tap to Stop";
+      watchId=navigator.geolocation.watchPosition(sendPing,null,{enableHighAccuracy:true,maximumAge:10000});
+    },()=>alert("Please allow location permission."));
+  }
+
+  function stopGPS(){
+    sharing=false;
+    if(watchId) navigator.geolocation.clearWatch(watchId);
+    document.getElementById("gps-btn").className="gps-btn";
+    document.getElementById("gps-ico").textContent="📍";
+    document.getElementById("gps-lbl").textContent="Share My Location — Help Other Riders";
+  }
+
+  async function sendPing(pos){
+    let id=sessionStorage.getItem("bmtc_id");
+    if(!id){ id="web-"+Math.random().toString(36).substr(2,10); sessionStorage.setItem("bmtc_id",id); }
+    try {
+      await fetch(`${API}/ping`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          device_id:id, direction_id:dir,
+          lat:pos.coords.latitude, lng:pos.coords.longitude,
+          speed_mps:pos.coords.speed||0, heading:pos.coords.heading||0,
+          timestamp:new Date().toISOString()
+        })
+      });
+    }catch(e){}
+  }
+
+  switchDir(1);
+</script>
+</body>
+</html>
